@@ -1,6 +1,8 @@
 package util;
 
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,11 +22,37 @@ public final class JpaUtil {
         putEnv(overrides, "javax.persistence.jdbc.url", "INBANK_JDBC_URL");
         putEnv(overrides, "javax.persistence.jdbc.user", "INBANK_DB_USER");
         putEnv(overrides, "javax.persistence.jdbc.password", "INBANK_DB_PASSWORD");
+        applyRenderDatabaseEnv(overrides);
         applyDatabaseUrl(overrides);
         if (overrides.isEmpty()) {
             return Persistence.createEntityManagerFactory("inbank");
         }
         return Persistence.createEntityManagerFactory("inbank", overrides);
+    }
+
+    /** Render Blueprint: INBANK_DB_HOST, PORT, NAME, USER, PASSWORD (avoids broken DATABASE_URL parsing). */
+    private static void applyRenderDatabaseEnv(Map<String, Object> overrides) {
+        if (overrides.containsKey("javax.persistence.jdbc.url")) {
+            return;
+        }
+        String host = env("INBANK_DB_HOST");
+        if (host == null) {
+            return;
+        }
+        String port = env("INBANK_DB_PORT");
+        String name = env("INBANK_DB_NAME");
+        if (name == null) {
+            name = "inbank";
+        }
+        int portNum = 5432;
+        if (port != null && !port.isBlank()) {
+            portNum = Integer.parseInt(port.trim());
+        }
+        String jdbc = "jdbc:postgresql://" + host.trim() + ":" + portNum + "/" + name.trim()
+                + "?sslmode=require";
+        overrides.put("javax.persistence.jdbc.url", jdbc);
+        putEnv(overrides, "javax.persistence.jdbc.user", "INBANK_DB_USER");
+        putEnv(overrides, "javax.persistence.jdbc.password", "INBANK_DB_PASSWORD");
     }
 
     /** Render/Heroku-style DATABASE_URL → JDBC (when INBANK_JDBC_URL is not set). */
@@ -62,8 +90,10 @@ public final class JpaUtil {
             if (userInfo != null) {
                 int colon = userInfo.indexOf(':');
                 if (colon > 0) {
-                    overrides.putIfAbsent("javax.persistence.jdbc.user", userInfo.substring(0, colon));
-                    overrides.putIfAbsent("javax.persistence.jdbc.password", userInfo.substring(colon + 1));
+                    String user = URLDecoder.decode(userInfo.substring(0, colon), StandardCharsets.UTF_8);
+                    String password = URLDecoder.decode(userInfo.substring(colon + 1), StandardCharsets.UTF_8);
+                    overrides.putIfAbsent("javax.persistence.jdbc.user", user);
+                    overrides.putIfAbsent("javax.persistence.jdbc.password", password);
                 }
             }
         } catch (Exception ex) {
@@ -72,10 +102,18 @@ public final class JpaUtil {
     }
 
     private static void putEnv(Map<String, Object> map, String key, String envName) {
-        String value = System.getenv(envName);
-        if (value != null && !value.isBlank()) {
-            map.put(key, value.trim());
+        String value = env(envName);
+        if (value != null) {
+            map.put(key, value);
         }
+    }
+
+    private static String env(String envName) {
+        String value = System.getenv(envName);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     public static EntityManager getEntityManager() {
