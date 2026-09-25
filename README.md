@@ -43,6 +43,19 @@ A full-stack **Java web banking application** for user accounts, money movement,
    - Username: `admin`
    - Password: `admin123`
 
+## Deployment
+
+- **Render (recommended for a public URL):** step-by-step **[docs/RENDER-DEPLOY.md](docs/RENDER-DEPLOY.md)** — use the included `render.yaml` Blueprint. **Vercel cannot host this app** (Java/Tomcat + PostgreSQL).
+- **Other options:** **[DEPLOYMENT.md](DEPLOYMENT.md)** (Docker Compose, VPS, WAR).
+
+Quick Docker run (requires Docker Desktop):
+
+```bash
+docker compose up --build
+```
+
+Then open **http://localhost:8080/InBank/**
+
 ## Run in Eclipse
 
 1. Import as **Existing Maven Project** (`InBank` folder).

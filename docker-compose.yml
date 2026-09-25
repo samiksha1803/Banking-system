@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inbank
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5433:5432"
+    volumes:
+      - inbank_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inbank"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      INBANK_JDBC_URL: jdbc:postgresql://db:5432/inbank
+      INBANK_DB_USER: postgres
+      INBANK_DB_PASSWORD: root
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  inbank_pg:

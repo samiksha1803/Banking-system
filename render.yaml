@@ -1,0 +1,24 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Dashboard → New → Blueprint → connect repo with this file at repo root.
+#
+# If the GitHub repo root is NewBankProject (not InBank), set:
+#   services[].rootDir: InBank
+
+databases:
+  - name: inbank-db
+    databaseName: inbank
+    user: inbank
+    plan: free
+
+services:
+  - type: web
+    name: inbank
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /InBank/
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: inbank-db
+          property: connectionString

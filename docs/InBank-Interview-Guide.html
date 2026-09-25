@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>InBank — Interview Preparation Guide</title>
+<style>
+  @page { margin: 18mm 16mm; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.45; color: #1a1a1a; max-width: 210mm; margin: 0 auto; padding: 12px; }
+  h1 { font-size: 22pt; color: #1b4332; border-bottom: 3px solid #a67c2d; padding-bottom: 8px; margin-top: 0; }
+  h2 { font-size: 14pt; color: #1b4332; margin-top: 22px; page-break-after: avoid; }
+  h3 { font-size: 12pt; color: #333; margin-top: 14px; }
+  .meta { color: #555; font-size: 10pt; margin-bottom: 20px; }
+  .box { background: #f3f6f4; border-left: 4px solid #1b4332; padding: 10px 14px; margin: 12px 0; }
+  .warn { background: #fff8e6; border-left-color: #a67c2d; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
+  th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #e8efe9; }
+  code, .mono { font-family: Consolas, monospace; font-size: 9.5pt; background: #f0f0f0; padding: 1px 4px; }
+  ul, ol { margin: 6px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  .flow { font-family: Consolas, monospace; font-size: 9pt; background: #f8f8f8; padding: 10px; white-space: pre-wrap; border: 1px solid #ddd; }
+  .page-break { page-break-before: always; }
+  .qa q { font-weight: 600; display: block; margin-top: 10px; color: #1b4332; }
+  .qa a { display: block; margin-bottom: 8px; margin-left: 0; }
+  footer { margin-top: 30px; font-size: 9pt; color: #666; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>InBank — Bank Management System</h1>
+<p class="meta">
+  <strong>Interview preparation guide</strong> · Author: Samiksha ·
+  GitHub: <span class="mono">github.com/samiksha1803/Banking-system</span> ·
+  Stack: Java 21, Servlets, JSP, Hibernate/JPA, PostgreSQL, Tomcat 9, Maven
+</p>
+
+<div class="box">
+  <strong>30-second elevator pitch</strong><br>
+  InBank is a Java web banking application I built using Servlets and JSP on Apache Tomcat,
+  with Hibernate and JPA for persistence on PostgreSQL. Users can register, log in, deposit,
+  withdraw, and transfer money to other customers using a 12-digit account number. Every money
+  movement is recorded in a transaction ledger with reference numbers and timestamps. There is
+  an admin module for customer and ledger management, plus session-based security and password hashing.
+</div>
+
+<h2>1. Why this project (for HR / fresher rounds)</h2>
+<ul>
+  <li>Demonstrates <strong>end-to-end web development</strong> in Java (not only console programs).</li>
+  <li>Shows <strong>database design</strong>, ORM, and <strong>transaction integrity</strong> (transfers update two balances atomically).</li>
+  <li>Includes <strong>authentication</strong>, role-based admin access, and validation.</li>
+  <li>Deployable as a <strong>WAR</strong> on Tomcat — similar to industry Java EE style apps.</li>
+</ul>
+
+<h2>2. Technology stack (what to say when asked)</h2>
+<table>
+  <tr><th>Layer</th><th>Technology</th><th>Your one-line explanation</th></tr>
+  <tr><td>Language</td><td>Java 21</td><td>Core business logic, servlets, services.</td></tr>
+  <tr><td>Web</td><td>Servlets + JSP</td><td>Servlets handle HTTP; JSP renders HTML views.</td></tr>
+  <tr><td>ORM</td><td>Hibernate 5.6 + JPA</td><td>Maps Java entities to PostgreSQL tables; JPQL queries.</td></tr>
+  <tr><td>Database</td><td>PostgreSQL</td><td>Relational storage for users, transactions, notifications.</td></tr>
+  <tr><td>Build</td><td>Maven (WAR)</td><td>Dependencies and packaging for Tomcat deployment.</td></tr>
+  <tr><td>Server</td><td>Apache Tomcat 9</td><td>Hosts the application at /InBank.</td></tr>
+  <tr><td>Tools</td><td>Lombok, pgAdmin</td><td>Reduces boilerplate on entities; DB administration.</td></tr>
+</table>
+
+<h2>3. Architecture (layered design)</h2>
+<p>Interviewers like hearing you organized the code in layers:</p>
+<div class="flow">Browser (JSP + CSS)
+    | HTTP GET/POST
+Controller layer  ->  controller.*Servlet  (Login, Transfer, Admin, ...)
+    |
+Service layer     ->  BankService, AssistantService  (business rules)
+    |
+DAO layer         ->  UserDao, TransactionDao, NotificationDao  (queries)
+    |
+JPA / Hibernate   ->  EntityManager, entities in dto package
+    |
+PostgreSQL        ->  tables: users, transactions, notifications</div>
+
+<p><strong>Filters & listener:</strong></p>
+<ul>
+  <li><code>EncodingFilter</code> — UTF-8 for requests/responses.</li>
+  <li><code>AuthFilter</code> — protects dashboard, transfer, admin URLs; refreshes user from DB each request.</li>
+  <li><code>AppListener</code> — on startup: DB bootstrap, default admin user, legacy data fixes.</li>
+  <li><code>web.xml</code> — registers all servlets and filters (<code>metadata-complete=true</code>).</li>
+</ul>
+
+<h2>4. Database entities (tables)</h2>
+<h3>User (<code>users</code>)</h3>
+<ul>
+  <li><code>id</code>, <code>username</code>, <code>password</code> (hashed), <code>fullName</code>, <code>email</code>, <code>phone</code></li>
+  <li><code>accountNumber</code> — unique 12-digit number (starts with 6210)</li>
+  <li><code>balance</code> — <code>BigDecimal</code> for money precision</li>
+  <li><code>role</code> — USER or ADMIN; <code>active</code> — account enabled/disabled</li>
+</ul>
+<h3>Transaction (<code>transactions</code>)</h3>
+<ul>
+  <li>Ledger row per money movement: <code>type</code> (DEPOSIT, WITHDRAW, TRANSFER_IN, TRANSFER_OUT, adjustments)</li>
+  <li><code>amount</code>, <code>balanceAfter</code>, <code>referenceNumber</code>, <code>createdAt</code></li>
+  <li><code>note</code>, counterparty name/account for transfers</li>
+  <li>Linked to <code>user_id</code></li>
+</ul>
+<h3>Notification (<code>notifications</code>)</h3>
+<ul>
+  <li>In-app alerts after deposits, transfers, password changes, etc.</li>
+  <li>Optional email via <code>mail.properties</code> (SMTP).</li>
+</ul>
+<p>Hibernate setting: <code>hbm2ddl.auto=update</code> — schema evolves on startup (good for learning; production would use migrations).</p>
+
+<h2 class="page-break">5. Main features (map to your resume bullets)</h2>
+<table>
+  <tr><th>Feature</th><th>How it works (short)</th></tr>
+  <tr><td>Registration</td><td>Validates username/email; hashes password; generates account number; welcome notification.</td></tr>
+  <tr><td>Login / Logout</td><td>Session stores <code>User</code> (password cleared); 20 min timeout; logout invalidates session.</td></tr>
+  <tr><td>Dashboard</td><td>Balance, deposit/withdraw forms, recent transactions.</td></tr>
+  <tr><td>Deposit / Withdraw</td><td><code>BankService</code> updates balance + inserts transaction in one DB transaction.</td></tr>
+  <tr><td>Insufficient balance</td><td>Checked before withdraw/transfer; user sees error message.</td></tr>
+  <tr><td>Transfer</td><td>By recipient account number; two ledger rows, same reference; pessimistic locks on both users.</td></tr>
+  <tr><td>Transaction history</td><td>JPQL search by type, date range, reference, name.</td></tr>
+  <tr><td>Profile / Password</td><td>Update contact info; PBKDF2 password change with validation.</td></tr>
+  <tr><td>Admin</td><td>Stats, customer search, activate/deactivate, manual credit/debit, full ledger.</td></tr>
+  <tr><td>Assistant</td><td>Rule-based answers from user’s balance/history (no external AI API).</td></tr>
+</table>
+
+<h2>6. Request flow examples (explain in depth if asked)</h2>
+<h3>Login</h3>
+<ol>
+  <li>POST <code>/login</code> -&gt; <code>LoginServlet</code></li>
+  <li><code>BankService.login</code> — JPQL find user, <code>PasswordUtil.matches</code></li>
+  <li>Legacy plain passwords upgraded to hash on successful login</li>
+  <li>Session attribute <code>user</code> set; redirect to dashboard or admin</li>
+</ol>
+<h3>Transfer (most impressive to explain)</h3>
+<ol>
+  <li>POST <code>/transfer</code> — <code>AuthFilter</code> ensures logged-in user</li>
+  <li><code>BankService.transfer</code> inside single <code>EntityTransaction</code>:
+    <ul>
+      <li>Validate amount and 12-digit account number</li>
+      <li>Find sender and receiver; reject self-transfer and inactive accounts</li>
+      <li><strong>Pessimistic write locks</strong> on both users (lower user id first — avoids deadlock)</li>
+      <li>Subtract from sender, add to receiver; two <code>Transaction</code> rows with same reference</li>
+      <li>Notifications for both parties</li>
+    </ul>
+  </li>
+  <li>On success: refresh session user, flash message, redirect to dashboard</li>
+</ol>
+<div class="box warn">
+  <strong>Honest note for interviews:</strong> User self-service <em>Deposit</em> is simplified for demos.
+  Real banks usually credit accounts via branch, ATM, or payment rails; admin adjustment models that idea.
+</div>
+
+<h2>7. Security (what you implemented)</h2>
+<ul>
+  <li><strong>Passwords:</strong> PBKDF2 with salt (not stored in plain text for new users).</li>
+  <li><strong>Session:</strong> HttpOnly cookie; user object in session; auth filter on protected routes.</li>
+  <li><strong>Admin routes:</strong> Only <code>role=ADMIN</code> can access <code>/admin/*</code>.</li>
+  <li><strong>Validation:</strong> Central classes — username, email, phone, amounts, account numbers.</li>
+  <li><strong>SQL injection:</strong> JPA parameterized queries (JPQL <code>:param</code>), not string-concat SQL.</li>
+</ul>
+
+<h2 class="page-break">8. Project structure (folders to remember)</h2>
+<table>
+  <tr><th>Package / folder</th><th>Responsibility</th></tr>
+  <tr><td><code>controller/</code></td><td>HTTP endpoints (servlets)</td></tr>
+  <tr><td><code>service/BankService.java</code></td><td>Core banking rules and transactions</td></tr>
+  <tr><td><code>dao/</code></td><td>Database queries</td></tr>
+  <tr><td><code>dto/</code></td><td>JPA entities (User, Transaction, Notification)</td></tr>
+  <tr><td><code>filter/</code></td><td>Auth, encoding</td></tr>
+  <tr><td><code>util/</code></td><td>Money, PasswordUtil, Validators, Web helpers</td></tr>
+  <tr><td><code>webapp/WEB-INF/views/</code></td><td>JSP pages (not directly URL-accessible)</td></tr>
+  <tr><td><code>persistence.xml</code></td><td>JDBC URL, dialect, Hibernate settings</td></tr>
+</table>
+
+<h2>9. Live demo script (5 minutes in interview)</h2>
+<ol>
+  <li>Open <code>http://localhost:8080/InBank/</code></li>
+  <li>Register User A and User B — show account numbers on Profile</li>
+  <li>Login as A -&gt; Deposit -&gt; show balance and Transactions (reference + timestamp)</li>
+  <li>Transfer to B's account number -&gt; success message -&gt; login as B -&gt; balance increased</li>
+  <li>Optional: Login as <code>admin</code> / <code>admin123</code> -&gt; Admin stats and ledger</li>
+</ol>
+
+<h2>10. Common interview questions &amp; sample answers</h2>
+<div class="qa">
+  <q>Why Servlets and not Spring Boot?</q>
+  <a>I wanted to learn the Java web foundation: HTTP, sessions, filters, and deployment on Tomcat. Spring Boot adds convenience later; this project shows I understand the underlying servlet model and JPA.</a>
+
+  <q>Why Hibernate / JPA?</q>
+  <a>It maps my Java classes to tables, generates SQL, and gives me transactions and locking. I use JPQL for readable queries and keep SQL out of servlets.</a>
+
+  <q>Why PostgreSQL?</q>
+  <a>Reliable open-source RDBMS; good for relational banking data (users, ledger). I used pgAdmin to inspect tables and verify transfers.</a>
+
+  <q>How do you prevent double-spending or wrong balances on transfer?</q>
+  <a>All updates happen in one database transaction. I use pessimistic locks on both user rows, check balance before debit, and commit or rollback together. Two transaction records share one reference number.</a>
+
+  <q>What is the difference between session and database transaction?</q>
+  <a>HTTP session stores logged-in user state in the server. A JPA <code>EntityTransaction</code> is a short DB unit of work (begin/commit) for one operation like a transfer.</a>
+
+  <q>What challenges did you face?</q>
+  <a>Servlet mapping with web.xml, session expiry during transfer (fixed with clear messages and session refresh), character encoding for minus signs in JSP, and deploying from Eclipse to Tomcat with the correct context path /InBank.</a>
+
+  <q>What would you improve next?</q>
+  <a>Spring Boot or REST API layer, Flyway migrations instead of hbm2ddl auto-update, admin-only deposits or deposit approval workflow, unit tests for BankService, and HTTPS in production.</a>
+</div>
+
+<h2>11. Keywords to use confidently</h2>
+<p>
+  MVC-style layering · WAR deployment · JPA entities · JPQL · ACID transaction ·
+  Pessimistic locking · Session management · Filter chain · DTO/DAO pattern ·
+  BigDecimal for currency · Role-based access · Ledger / audit trail
+</p>
+
+<h2>12. Setup reminder (if they ask “can you run it?”)</h2>
+<ol>
+  <li>PostgreSQL database <code>inbank</code>; configure <code>persistence.xml</code></li>
+  <li>Import Maven project in Eclipse; add to Tomcat 9; Maven Update; Start server</li>
+  <li>URL: <code>/InBank/</code> — not Tomcat root unless configured</li>
+</ol>
+
+<footer>
+  InBank Interview Guide · For personal preparation · github.com/samiksha1803/Banking-system
+</footer>
+</body>
+</html>

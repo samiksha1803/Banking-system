@@ -1,0 +1,8 @@
+target/
+.git/
+.settings/
+.classpath
+.project
+docs/
+*.md
+!README.md
