@@ -1,0 +1,34 @@
+# Compiled
+*.class
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Eclipse / IDE
+.classpath
+.project
+.settings/
+.factorypath
+.buildpath
+
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+
+# Local secrets (keep your real DB password out of GitHub)
+src/main/resources/mail-local.properties
