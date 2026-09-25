@@ -50,7 +50,7 @@ A full-stack **Java web banking application** for user accounts, money movement,
 3. **Maven → Update Project**, then start Tomcat.
 4. Open: **http://localhost:8080/InBank/**
 
-## Demo flow (for interviews)
+## Demo flow 
 
 1. Register two users → note each **12-digit account number** on Profile.
 2. Deposit on sender account → **Transfer** to the other account number.
